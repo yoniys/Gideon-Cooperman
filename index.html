@@ -1041,15 +1041,15 @@ footer {
       </a>
     </div>
 
-    <div class="reveal d2">
+    <form class="reveal d2" id="contact-form" method="POST" action="https://formsubmit.co/yonatans@venn.city">
       <div class="form-2col">
-        <div class="fg"><label>שם מלא</label><input type="text" placeholder="ישראל ישראלי"></div>
-        <div class="fg"><label>טלפון</label><input type="tel" placeholder="05X-XXXXXXX"></div>
+        <div class="fg"><label>שם מלא</label><input type="text" name="name" placeholder="ישראל ישראלי" required></div>
+        <div class="fg"><label>טלפון</label><input type="tel" name="phone" placeholder="05X-XXXXXXX" required></div>
       </div>
-      <div class="fg"><label>אימייל</label><input type="email" placeholder="name@email.com"></div>
+      <div class="fg"><label>אימייל</label><input type="email" name="email" placeholder="name@email.com" required></div>
       <div class="fg">
         <label>תחום עניין</label>
-        <select>
+        <select name="topic" required>
           <option value="">בחר תחום...</option>
           <option>שיווק פרויקט</option>
           <option>השקעה בנדל"ן</option>
@@ -1057,12 +1057,14 @@ footer {
           <option>ייעוץ כללי</option>
         </select>
       </div>
-      <div class="fg"><label>הודעה</label><textarea placeholder="ספר לנו על הפרויקט או הצורך שלך..."></textarea></div>
-      <button id="send-btn" class="btn btn-gold" style="width:100%;justify-content:center;border:none;cursor:pointer;font-family:'Rubik',sans-serif;">
+      <div class="fg"><label>הודעה</label><textarea name="message" placeholder="ספר לנו על הפרויקט או הצורך שלך..." required></textarea></div>
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_next" value="javascript:void(0)">
+      <button type="submit" id="send-btn" class="btn btn-gold" style="width:100%;justify-content:center;border:none;cursor:pointer;font-family:'Rubik',sans-serif;">
         שלח פנייה
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
-    </div>
+    </form>
   </div>
 </div>
 
@@ -1098,11 +1100,63 @@ footer {
   );
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-  // Form send
-  document.getElementById('send-btn').addEventListener('click', function(e) {
+  // Form send with FormSubmit
+  const form = document.getElementById('contact-form');
+  const sendBtn = document.getElementById('send-btn');
+  
+  form.addEventListener('submit', function(e) {
+    // Disable default submission so we can show custom feedback
     e.preventDefault();
-    this.innerHTML = '✓ נשלח בהצלחה!';
-    this.style.cssText += 'background:rgba(201,168,76,.2);color:var(--gold);border:1px solid var(--gold);box-shadow:none;';
+    
+    // Store original button state
+    const originalHTML = sendBtn.innerHTML;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = 'שולח...';
+    
+    // Prepare form data
+    const formData = new FormData(form);
+    const data = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      topic: formData.get('topic'),
+      message: formData.get('message'),
+      _captcha: false,
+      _next: 'javascript:void(0)'
+    };
+    
+    // Send via FormSubmit API
+    fetch('https://formsubmit.co/ajax/yonatans@venn.city', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        sendBtn.innerHTML = '✓ נשלח בהצלחה!';
+        sendBtn.style.cssText += 'background:rgba(201,168,76,.2);color:var(--gold);border:1px solid var(--gold);box-shadow:none;pointer-events:none;';
+        form.reset();
+        
+        // Reset button after 3 seconds
+        setTimeout(() => {
+          sendBtn.innerHTML = originalHTML;
+          sendBtn.disabled = false;
+          sendBtn.style.cssText = sendBtn.style.cssText.replace(/pointer-events:none;?/, '');
+        }, 3000);
+      } else {
+        throw new Error('Failed to send');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      // Try regular form submission as fallback
+      form.style.pointerEvents = 'none';
+      form.submit();
+    });
   });
 </script>
 </body>
